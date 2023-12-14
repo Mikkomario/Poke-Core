@@ -77,7 +77,7 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 							val defensiveValue = (statMap.getOrElse(Defense, 0) +
 								statMap.getOrElse(SpecialDefense, 0)) / 2.0 * statMap.getOrElse(Hp, 0)
 							val offensiveValue = (statMap.get(Attack).toVector ++ statMap.get(SpecialAttack))
-								.maxOption.getOrElse(0) * statMap.getOrElse(Speed, 0)
+								.maxOption.getOrElse(0) * math.pow(statMap.getOrElse(Speed, 0).toDouble, 0.7)
 							(bst, offensiveValue, defensiveValue)
 						}
 						.toVector
@@ -156,6 +156,13 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 	
 	
 	// OTHER    -------------------------
+	
+	def parseType(typeString: String) = {
+		val t = PokeType.findForName(typeString)
+		if (t.isEmpty)
+			println(s"'$typeString' is not recognized as a type")
+		t
+	}
 	
 	def powerLevelsOf(pokeId: Int) = statPowerRangesPointer.value.value match {
 		case Success((spread, lists)) =>

@@ -1,6 +1,9 @@
 package vf.poke.companion.controller.app
 
+import utopia.flow.collection.immutable.Pair
 import utopia.flow.collection.immutable.range.NumericSpan
+import utopia.flow.collection.CollectionExtensions._
+import utopia.flow.operator.enumeration.End.{First, Last}
 import utopia.flow.util.console.{ArgumentSchema, Command}
 import utopia.vault.database.Connection
 import vf.poke.companion.database.access.many.gameplay.attack_experiment.DbAttackExperiments
@@ -15,7 +18,8 @@ import vf.poke.core.database.access.many.poke.stat.DbPokeStats
 import vf.poke.core.database.access.many.randomization.move.DbLearntMoves
 import vf.poke.core.database.access.many.randomization.starter_set.DbDetailedStarterSets
 import vf.poke.core.model.cached.{SpreadThresholds, SpreadValues}
-import vf.poke.core.model.enumeration.Stat.{Attack, Defense, SpecialAttack, SpecialDefense}
+import vf.poke.core.model.enumeration.PokeType
+import vf.poke.core.model.enumeration.Stat.{Attack, Defense, Hp, SpecialAttack, SpecialDefense, Speed}
 import vf.poke.core.model.stored.poke.Poke
 import vf.poke.core.util.Common._
 
@@ -70,6 +74,36 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 					).foreach { case (description, value) =>
 						println(s"\t- $description: ${physicalToSpecialSpread(value)}")
 					}
+					// Also reads offense, defense and speed bias
+					val offenseRating = stats(Attack) max stats(SpecialAttack)
+					val defenseRating = ((stats(Defense) + stats(SpecialDefense)) / 2.0 + stats(Hp)) / 2.0
+					val speed = stats(Speed)
+					val typeDescription = {
+						// Case: Low defense or high speed
+						if (speed > defenseRating * 1.5) {
+							if (offenseRating > defenseRating * 1.3)
+								"Fast sweeper (high speed & attack, low defense)"
+							else
+								"Fast setup (high speed)"
+						}
+						// Case: Low speed or high defense
+						else if (defenseRating > speed * 1.5) {
+							if (offenseRating > speed * 1.3)
+								"Tank (high defense & attack, low speed)"
+							else
+								"Setup tank (high defense)"
+						}
+						// Case: Relatively high attack
+						else if (offenseRating > defenseRating * 1.5) {
+							if (speed > defenseRating * 1.3)
+								"Hard-hitting sweeper (high attack, low defense)"
+							else
+								"Class cannon (high attack, low defense & speed)"
+						}
+						else
+							"Balanced"
+					}
+					println(s"\t- Battle type: $typeDescription")
 				}
 				else
 					println("You are not familiar enough with this poke yet")
@@ -135,6 +169,61 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
+	lazy val helpChooseMoveCommand = Command("movetype", "compare")(
+		env.pokeArg,
+		ArgumentSchema("movetype", "t1", help = "Type of the first possible move"),
+		ArgumentSchema("alt", "t2", help = "Type of the second possible move"),
+		ArgumentSchema("existing", "types", help = "Existing move types. If not specified, assumes STAB moves. Separate entries with +.")
+	) { implicit args =>
+		cPool { implicit c =>
+			// Parses the arguments
+			env.poke.foreach { poke =>
+				// Makes sure the poke has been captured
+				if (isCaptured(poke.id))
+					env.parseType(args("movetype").getString).foreach { moveType =>
+						env.parseType(args("alt").getString).foreach { altType =>
+							val existingTypes = args("existing").string match {
+								case Some(input) =>
+									val proposed = input.split('+').flatMap { s => env.parseType(s.trim) }
+									if (proposed.isEmpty) poke.types.types.toSet else proposed.toSet
+								case None => poke.types.types.toSet
+							}
+							// Compares and describes the type benefits
+							val dangerousTypes = PokeType.values.filter { _.effectivenessAgainst(poke.types) > 1.0 }.toSet
+							val typeComparison = Pair(moveType, altType)
+								.map { moveType =>
+									val combinedTypes = existingTypes + moveType
+									val defeatedTypes = PokeType.values
+										.filter { t => combinedTypes.exists { _.effectivenessAgainst(t) > 1.0 } }
+										.toSet
+									moveType -> defeatedTypes
+								}
+							val differentTypeAdvantages = typeComparison
+								.mapWithSides { case ((moveType, allAdvantages), side) =>
+									val advantagesOfAlternative = typeComparison(side.opposite)._2
+									val advantagesOnlyInThisType = allAdvantages -- advantagesOfAlternative
+									moveType -> advantagesOnlyInThisType.divideBy(dangerousTypes.contains)
+								}
+							println(s"Assuming existing move type(s): ${existingTypes.mkString(" + ")}")
+							differentTypeAdvantages.foreach { case (moveType, gainedAdvantages) =>
+								println(s"$moveType is more effective against ${
+									gainedAdvantages.mapAndMerge { _.size } { _ + _ } } types, ${
+									gainedAdvantages.second.size } of which deal high damage against ${poke.name}")
+								gainedAdvantages.foreachSide { (types, side) =>
+									val sideDescription = side match {
+										case First => ""
+										case Last => " (dangerous)"
+									}
+									types.foreach { t => println(s"\t- $t$sideDescription") }
+								}
+							}
+						}
+					}
+				else
+					println("This command is available only for captured pokes")
+			}
+		}
+	}
 	lazy val describeStartersCommand = Command.withoutArguments("starters",
 		help = "Describes the starter pokes in a bit more detail") {
 		cPool { implicit c =>
@@ -182,7 +271,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 	// COMPUTED -------------------------
 	
 	def values = Vector(levelCommand, potentialCommand, abilitiesCommand, evoMoveChooseCommand,
-		describeStartersCommand)
+		helpChooseMoveCommand, describeStartersCommand)
 	
 	
 	// OTHER    -------------------------
