@@ -1,0 +1,441 @@
+{
+  "project": "Poke",
+  "database": "poke_db",
+  "author": "Mikko Hilpinen",
+  "version": "v1.0",
+  "package": "vf.poke.core",
+  "enums": [
+    {
+      "name": "PokeType",
+      "doc": "Represents a damage type in the game",
+      "values": ["Normal", "Fighting", "Flying", "Grass", "Water", "Fire", "Rock", "Ground", "Psychic", "Bug", "Dragon",
+        "Electric", "Ghost", "Poison", "Ice", "Steel", "Dark", "Fairy"]
+    },
+    {
+      "name": "Stat",
+      "doc": "Represents a poke's attribute in the game",
+      "values": ["Hp", "Attack", "SpecialAttack", "Defense", "SpecialDefense", "Speed"]
+    },
+    {
+      "name": "MoveCategory",
+      "doc": "An enumeration for whether something is physical-focused or special-focused",
+      "values": ["Physical", "Special"]
+    },
+    {
+      "name": "CriticalRate",
+      "values": ["Normal", "Increased", "Guaranteed"],
+      "default": "Normal"
+    }
+  ],
+  "classes": {
+    "game": [
+      {
+        "name": "Game",
+        "doc": "Represents a pokemon game entry",
+        "props": [
+          {
+            "name": "name",
+            "type": "String(16-96)",
+            "index": true,
+            "doc": "Name of this game"
+          }
+        ]
+      },
+      {
+        "name": "Item",
+        "doc": "Represents an item in a game",
+        "combo_index": ["gameId", "indexInGame"],
+        "props": [
+          {
+            "ref": "game",
+            "doc": "Id of the game in which this item appears"
+          },
+          {
+            "name": "indexInGame",
+            "name_plural": "inGameIndices",
+            "type": "Int(9999)",
+            "doc": "Index of this item within the game"
+          },
+          {
+            "name": "name",
+            "type": "String(16-96)",
+            "doc": "Name of this item in the game"
+          }
+        ]
+      },
+      {
+        "name": "Ability",
+        "name_plural": "Abilities",
+        "doc": "Represents a special ability that a poke can have",
+        "combo_index": ["gameId", "indexInGame"],
+        "props": [
+          {
+            "ref": "game",
+            "doc": "Id of the game in which this ability appears"
+          },
+          {
+            "name": "indexInGame",
+            "name_plural": "inGameIndices",
+            "doc": "Index of this ability in the game"
+          },
+          {
+            "name": "name",
+            "type": "String(16-96)",
+            "doc": "Name of this ability in the game"
+          }
+        ]
+      }
+    ],
+    "randomization": [
+      {
+        "name": "Randomization",
+        "doc": "Represents a single, typically randomized, game version / ROM",
+        "combo_index": ["game", "isOriginal"],
+        "props": [
+          {
+            "ref": "game",
+            "doc": "Id of the targeted game / ROM"
+          },
+          {
+            "type": "creation"
+          },
+          {
+            "name": "isOriginal",
+            "name_plural": "areOriginal",
+            "type": "Boolean",
+            "doc": "True if this represents an unmodified copy of the game"
+          }
+        ]
+      },
+      {
+        "name": "Move",
+        "doc": "Represents a possibly randomized move",
+        "combo": {
+          "name": "LearntMove",
+          "child": "MoveLearn",
+          "is_always_linked": true,
+          "child_alias": "learn",
+          "doc": "Represents a move learned by a poke. Includes full move details."
+        },
+        "combo_index": ["randomizationId", "name"],
+        "props": [
+          {
+            "ref": "randomization",
+            "doc": "Id of the randomization where these details apply"
+          },
+          {
+            "name": "indexInGame",
+            "name_plural": "inGameIndices",
+            "type": "Int(9999)",
+            "doc": "Index of this move in the game data"
+          },
+          {
+            "name": "name",
+            "type": "String(16-96)",
+            "doc": "Name of this move in the game"
+          },
+          {
+            "name": "moveType",
+            "type": "Enum[PokeType]",
+            "doc": "Type of this move"
+          },
+          {
+            "name": "category",
+            "type": "Option[Enum[MoveCategory]]",
+            "doc": "Category of this move, whether physical or special. None if neither."
+          },
+          {
+            "name": "damage",
+            "type": "Int",
+            "doc": "The amount of damage inflicted by this move, in game units"
+          },
+          {
+            "name": "hitCount",
+            "type": "Double",
+            "default": 1.0,
+            "doc": "The (average) hit count of this move"
+          },
+          {
+            "name": "hitRatio",
+            "type": "Double",
+            "default": 100.0,
+            "doc": "The ratio of how often this move hits, where 100 is 100% hit without accuracy or evasion mods"
+          },
+          {
+            "name": "criticalRate",
+            "type": "Enum[CriticalRate]",
+            "doc": "Rate of critical hits applied to this move"
+          }
+        ]
+      },
+      {
+        "name": "StarterSet",
+        "doc": "Represents a set of (3) starters that appears in a game",
+        "combo": {
+          "name": "DetailedStarterSet",
+          "children": "StarterAssignment",
+          "is_always_linked": true,
+          "parent_alias": "set",
+          "child_alias": "assignment",
+          "children_alias": "assignments",
+          "doc": "Includes the specific starter assignments in a starter set"
+        },
+        "combo_index": ["randomizationId", "placement"],
+        "props": [
+          {
+            "ref": "randomization",
+            "doc": "Id of the randomization where these starters appear"
+          },
+          {
+            "name": "placement",
+            "type": "Int",
+            "doc": "Relative set index within the game, 0-based"
+          }
+        ]
+      },
+      {
+        "name": "StarterAssignment",
+        "doc": "Represents a starter poke-assignment in a game",
+        "props": [
+          {
+            "name": "setId",
+            "ref": "starter_set",
+            "doc": "Id of the starter set to which this starter belongs"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the poke that appears as a starter"
+          },
+          {
+            "name": "placement",
+            "type": "Int",
+            "doc": "A zero-based index that shows where this starter appears relative to the others. The following index is typically strong against the previous index."
+          }
+        ]
+      },
+      {
+        "name": "WildEncounter",
+        "doc": "Represents a random encounter with a wild poke",
+        "combo_index": ["randomizationId", "minLevel"],
+        "props": [
+          {
+            "ref": "randomization",
+            "doc": "Randomization in which this encounter applies"
+          },
+          {
+            "name": "zoneIndex",
+            "type": "Int",
+            "doc": "Index of the zone / map in which this encounter applies"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the poke that may be encountered"
+          },
+          {
+            "name": "levelRange",
+            "type": "Span[Int]",
+            "doc": "Range of levels that are possible for this encounter",
+            "parts": [
+              {
+                "name": "minLevel"
+              },
+              {
+                "name": "maxLevel"
+              }
+            ]
+          },
+          {
+            "name": "numberOfEncounters",
+            "name_plural": "encounterCounts",
+            "type": "Int",
+            "default": 1,
+            "doc": "Number of individual encounters represented by this instance"
+          }
+        ]
+      },
+      {
+        "name": "BattleEncounter",
+        "combo_index": ["randomizationId", "level"],
+        "doc": "Represents a scripted encounter with a poke in a trainer battle",
+        "props": [
+          {
+            "ref": "randomization",
+            "doc": "Id of the randomization where this encounter applies"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the encountered poke"
+          },
+          {
+            "name": "level",
+            "type": "Int",
+            "doc": "Level at which this poke is encountered"
+          },
+          {
+            "name": "numberOfEncounters",
+            "name_plural": "encounterCounts",
+            "type": "Int",
+            "default": 1,
+            "doc": "Number of individual encounters represented by this instance"
+          }
+        ]
+      }
+    ],
+    "poke": [
+      {
+        "name": "Poke",
+        "doc": "Represents a randomized poke from one of the games",
+        "combos": [
+          {
+            "name": "Starter",
+            "child": "StarterAssignment",
+            "is_always_linked": true,
+            "doc": "Represents a starter poke"
+          }
+        ],
+        "combo_index": ["randomizationId", "name"],
+        "props": [
+          {
+            "ref": "randomization",
+            "doc": "The randomization in which this poke appears"
+          },
+          {
+            "name": "number",
+            "type": "Int(9999)",
+            "doc": "The pokedex-number of this poke in the game in which it appears"
+          },
+          {
+            "name": "formeIndex",
+            "name_plural": "formeIndices",
+            "type": "Int",
+            "default": 0,
+            "doc": "0-based index of the specific poke \"forme\" represented by this instance. 0 is the default forme."
+          },
+          {
+            "name": "name",
+            "type": "NonEmptyString(16-96)",
+            "index": true,
+            "doc": "Name of this poke in the english translation / game data"
+          },
+          {
+            "name": "primaryType",
+            "type": "Enum[PokeType]",
+            "doc": "The primary type of this poke"
+          },
+          {
+            "name": "secondaryType",
+            "type": "Option[Enum[PokeType]]",
+            "doc": "The secondary type of this poke. None if this poke only has one type"
+          }
+        ]
+      },
+      {
+        "name": "Evo",
+        "doc": "Represents a permanent change from one poke form to another",
+        "props": [
+          {
+            "ref": "poke",
+            "name": "fromId",
+            "doc": "Id of the poke from which this evo originates"
+          },
+          {
+            "ref": "poke",
+            "name": "toId",
+            "doc": "Id of the poke to which this evo leads"
+          },
+          {
+            "name": "levelThreshold",
+            "type": "Option[Int(100)]",
+            "doc": "The level at which this evo is enabled. None if not level-based"
+          },
+          {
+            "ref": "item",
+            "type": "Option[Int]",
+            "doc": "Id of the item associated with this evo"
+          }
+        ]
+      },
+      {
+        "name": "PokeStat",
+        "doc": "Represents a (base) stat assigned to a poke",
+        "combo_index": ["pokeId", "stat"],
+        "props": [
+          {
+            "ref": "poke",
+            "doc": "Id of the described poke"
+          },
+          {
+            "name": "stat",
+            "type": "Enum[Stat]",
+            "doc": "Described stat / attribute"
+          },
+          {
+            "name": "value",
+            "type": "Int",
+            "doc": "Assigned value, between 10 and 255"
+          }
+        ]
+      },
+      {
+        "name": "PokeAbility",
+        "name_plural": "PokeAbilities",
+        "doc": "Represents an ability that's possible for a poke to have",
+        "combo": {
+          "name": "DetailedPokeAbility",
+          "child": "Ability",
+          "is_always_linked": true,
+          "doc": "Includes ability information with an ability-assignment"
+        },
+        "props": [
+          {
+            "ref": "poke",
+            "doc": "Id of the poke that may have this ability"
+          },
+          {
+            "ref": "ability",
+            "doc": "Id of the ability this poke may have"
+          },
+          {
+            "name": "isHidden",
+            "name_plural": "areHidden",
+            "type": "Boolean",
+            "doc": "True if this is a hidden ability. Hidden abilities may only be acquired with special measures."
+          }
+        ]
+      },
+      {
+        "name": "MoveLearn",
+        "doc": "Represents a poke's ability to learn a move",
+        "combo_index": ["pokeId", "level"],
+        "props": [
+          {
+            "ref": "poke",
+            "doc": "Id of the poke that learns the move"
+          },
+          {
+            "ref": "move",
+            "doc": "Id of the move learnt"
+          },
+          {
+            "name": "level",
+            "doc": "Level at which this move is learnt, if applicable."
+          }
+        ]
+      },
+      {
+        "name": "EvoMove",
+        "doc": "Represents a poke's ability to learn a move when evolving",
+        "props": [
+          {
+            "ref": "poke",
+            "doc": "Id of the poke (form) learning this move"
+          },
+          {
+            "ref": "move",
+            "doc": "id of the move learnt"
+          }
+        ]
+      }
+    ]
+  }
+}

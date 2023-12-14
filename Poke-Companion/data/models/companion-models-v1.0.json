@@ -1,0 +1,133 @@
+{
+  "project": "PokeCompanion",
+  "version": "v1.0",
+  "package": "vf.poke.companion",
+  "author": "Mikko Hilpinen",
+  "database": "poke_db",
+  "referenced_enums": ["vf.poke.core.model.enumeration.PokeType"],
+  "classes": {
+    "gameplay": [
+      {
+        "name": "Run",
+        "doc": "Represents a gameplay run of a randomized game version",
+        "has_combos": true,
+        "props": [
+          {
+            "name": "name",
+            "type": "String(16-255)",
+            "index": true,
+            "doc": "Name of this run, for example consisting of the player name"
+          },
+          {
+            "ref": "randomization",
+            "doc": "Id of the randomization that's applied to this game run"
+          },
+          {
+            "type": "creation"
+          }
+        ]
+      },
+      {
+        "name": "AttackExperiment",
+        "doc": "Represents an attempt to attack an opposing poke with some damage type. Used for revealing information about the opponent's typing.",
+        "combo_index": ["opponentId", "attackType"],
+        "props": [
+          {
+            "ref": "run",
+            "doc": "Id of the game run on which this attempt was made"
+          },
+          {
+            "name": "opponentId",
+            "ref": "poke",
+            "doc": "Id of the opposing poke"
+          },
+          {
+            "name": "attackType",
+            "type": "Enum[PokeType]",
+            "doc": "Type of attack used against the poke"
+          },
+          {
+            "type": "creation",
+            "index": false
+          }
+        ]
+      },
+      {
+        "name": "TypeGuess",
+        "doc": "Represents the user's guess at a poke's type",
+        "props": [
+          {
+            "ref": "run",
+            "doc": "Id of the game run on which this guess was made"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the described poke"
+          },
+          {
+            "name": "guessedType",
+            "type": "Enum[PokeType]"
+          },
+          {
+            "type": "creation",
+            "index": false
+          },
+          {
+            "type": "deprecation",
+            "doc": "Time when this guess was replaced or when it became invalid"
+          }
+        ]
+      },
+      {
+        "name": "PokeCapture",
+        "doc": "Represents the event of capturing some poke",
+        "props": [
+          {
+            "ref": "run",
+            "doc": "Id of the game run on which this capture was made"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the captured poke"
+          },
+          {
+            "name": "level",
+            "type": "Int(100)",
+            "doc": "Level at which this capture was made"
+          },
+          {
+            "type": "creation",
+            "index": false
+          }
+        ]
+      },
+      {
+        "name": "PokeTraining",
+        "doc": "Represents an event / recording of a trained poke reaching a specific level",
+        "props": [
+          {
+            "ref": "run",
+            "doc": "Id of the run on which this event occurred"
+          },
+          {
+            "ref": "poke",
+            "doc": "Id of the trained poke"
+          },
+          {
+            "name": "level",
+            "type": "Int(100)",
+            "doc": "Reached level"
+          },
+          {
+            "type": "creation",
+            "index": false
+          },
+          {
+            "type": "deprecation",
+            "doc": "Time when this event was replaced with a more recent recording"
+          }
+        ]
+      }
+    ]
+  }
+}
