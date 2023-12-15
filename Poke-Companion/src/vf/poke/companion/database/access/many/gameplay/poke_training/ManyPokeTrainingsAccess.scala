@@ -5,7 +5,7 @@ import utopia.vault.database.Connection
 import utopia.vault.nosql.access.many.model.ManyRowModelAccess
 import utopia.vault.nosql.template.Indexed
 import utopia.vault.nosql.view.NullDeprecatableView
-import utopia.vault.sql.Condition
+import utopia.vault.sql.{Condition, OrderBy}
 import vf.poke.companion.database.factory.gameplay.PokeTrainingFactory
 import vf.poke.companion.database.model.gameplay.PokeTrainingModel
 import vf.poke.companion.model.stored.gameplay.PokeTraining
@@ -80,6 +80,14 @@ trait ManyPokeTrainingsAccess
 	
 	
 	// OTHER	--------------------
+	
+	/**
+	 * @param count Number of trainings to take
+	 * @param connection Implicit DB connection
+	 * @return 'count' highest level training entries
+	 */
+	def takeHighestLevels(count: Int)(implicit connection: Connection) =
+		take(OrderBy.descending(model.levelColumn), count)
 	
 	/**
 	  * Updates the creation times of the targeted poke trainings

@@ -9,6 +9,7 @@ import utopia.flow.util.console.{ArgumentSchema, CommandArguments}
 import utopia.flow.view.immutable.caching.ConditionalLazy
 import utopia.flow.view.mutable.eventful.EventfulPointer
 import utopia.vault.database.Connection
+import vf.poke.companion.database.access.many.gameplay.poke_training.DbPokeTrainings
 import vf.poke.companion.model.combined.gameplay.DetailedRun
 import vf.poke.core.database.access.many.poke.DbPokes
 import vf.poke.core.database.access.many.poke.evo.DbEvos
@@ -48,6 +49,7 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 	val runPointer = EventfulPointer(initialRun)
 	val partyPointer = EventfulPointer(Vector[Poke]())
 	
+	// TODO: Create evo- and level based categories in which the comparison is made
 	private val inGamePokeIdsPointer = runPointer.map { run =>
 		lazyWithConnection { implicit c =>
 			// Finds the pokes that appear as:
@@ -72,13 +74,14 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 					val powerLevels = DbPokeStats.ofPokes(pokeIds).pull
 						.groupMap { _.pokeId } { s => s.stat -> s.value }.view
 						.mapValues { stats =>
-							val statMap = stats.toMap
+							val statMap = stats.toMap.withDefaultValue(0)
 							val bst = stats.map { _._2 }.sum
-							val defensiveValue = (statMap.getOrElse(Defense, 0) +
-								statMap.getOrElse(SpecialDefense, 0)) / 2.0 * statMap.getOrElse(Hp, 0)
-							val offensiveValue = (statMap.get(Attack).toVector ++ statMap.get(SpecialAttack))
-								.maxOption.getOrElse(0) * math.pow(statMap.getOrElse(Speed, 0).toDouble, 0.7)
-							(bst, offensiveValue, defensiveValue)
+							val defensiveValue = (statMap(Defense) + statMap(SpecialDefense)) / 2.0 * statMap(Hp)
+							val speed = statMap(Speed)
+							val offensiveValue = (statMap(Attack) max statMap(SpecialAttack)) *
+								math.pow(speed.toDouble, 0.5)
+							
+							(bst, offensiveValue, defensiveValue, speed)
 						}
 						.toVector
 					// Creates sorted collections based on the power levels
@@ -87,7 +90,8 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 					val orderedLists = Vector(
 						"BST" -> powerLevels.sortBy { _._2._1 },
 						"offense" -> powerLevels.sortBy { _._2._2 },
-						"defense" -> powerLevels.sortBy { _._2._3 }
+						"defense" -> powerLevels.sortBy { _._2._3 },
+						"speed" -> powerLevels.sortBy { _._2._4 }
 					).map { case (powerName, orderedList) => powerName -> orderedList.map { _._1 } }
 					indexSpread -> orderedLists
 				}
@@ -103,7 +107,29 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 		val run = e.newValue
 		println(s"Using run ${run.name} of ${run.gameName}, started ${run.created.toLocalDate} (${
 			(Now - run.created).description } ago)")
+		
+		// Also updates the party
+		loadParty()
 	}
+	
+	// Prints when party changes
+	partyPointer.addContinuousListener { e =>
+		val (changes, _) = e.values.separateMatchingWith { _.id == _.id }
+		val names = changes.map { _.map { _.name } }
+		val removed = names.first
+		val added = names.second
+		
+		if (removed.nonEmpty) {
+			if (added.nonEmpty)
+				println(s"Swaps ${removed.mkString(" and ")} to ${added.mkString(" and ")}")
+			else
+				println(s"Removes ${ removed.mkString(" and ") } from the party")
+		}
+		else if (added.nonEmpty)
+			println(s"Adds ${ added.mkString(" and ") } to the party")
+	}
+	
+	loadParty()
 	
 	
 	// COMPUTED --------------------------
@@ -114,6 +140,7 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 	def randomizationId = run.randomizationId
 	
 	def party = partyPointer.value
+	def party_=(newParty: Vector[Poke]) = partyPointer.value = newParty
 	def hasParty = party.nonEmpty
 	
 	def poke(implicit connection: Connection, args: CommandArguments) = {
@@ -181,6 +208,12 @@ class PokeRunEnvironment(initialRun: DetailedRun)
 	 * @param poke A poke that's in the current party
 	 */
 	def onParty(poke: Poke) = partyPointer.update { poke +: _.filter { _ != poke }.take(5) }
+	
+	private def loadParty() = {
+		cPool.tryWith { implicit c =>
+			party = DbPokes(DbPokeTrainings.takeHighestLevels(6).map { _.pokeId }.toSet).pull
+		}.failure.foreach { _.printStackTrace() }
+	}
 	
 	private def lazyWithConnection[A](f: Connection => A) =
 		ConditionalLazy { cPool.tryWith(f) } { _.isSuccess }

@@ -362,7 +362,7 @@ object PokeType
 		// IMPLEMENTED  --------------------
 		
 		override def effectivenessAgainst(defendingType: PokeType): Double = defendingType match {
-			case Ice | Fairy => 2.0
+			case Ice | Fairy | Rock => 2.0
 			case Fire | Water | Electric | Steel => 0.5
 			case _ => 1.0
 		}

@@ -4,6 +4,7 @@ import utopia.flow.collection.immutable.Pair
 import utopia.flow.collection.immutable.range.NumericSpan
 import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.operator.enumeration.End.{First, Last}
+import utopia.flow.util.NotEmpty
 import utopia.flow.util.console.{ArgumentSchema, Command}
 import utopia.vault.database.Connection
 import vf.poke.companion.database.access.many.gameplay.attack_experiment.DbAttackExperiments
@@ -59,10 +60,24 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 				// Checks whether power-estimate is allowed
 				// For this, the poke must be captured first
 				// Alternatively, if there are enough attack experiments, this feature will be available as well
-				if (isCaptured(poke.id) || attackExperimentCountAgainst(poke.id) >= 4) {
+				val captured = isCaptured(poke.id)
+				if (captured || attackExperimentCountAgainst(poke.id) >= 4) {
 					println(s"Attributes of ${poke.name}:")
 					env.powerLevelsOf(poke.id).foreach { case (power, level) =>
 						println(s"\t- ${power.capitalize}: $level")
+					}
+					// Describes the fully evolved from as well (only for captured pokes)
+					if (captured) {
+						val evolvedIds = fullyEvolvedIds(poke.id)
+						if (evolvedIds.nonEmpty) {
+							DbPokes(evolvedIds.toSet).pull.foreach { poke =>
+								println(s"\t- Once fully evolved:")
+								// WET WET
+								env.powerLevelsOf(poke.id).foreach { case (power, level) =>
+									println(s"\t\t- ${power.capitalize}: $level")
+								}
+							}
+						}
 					}
 					// Also reads physical to special ratios
 					val stats = DbPokeStats.ofPoke(poke.id).toMap.withDefaultValue(1)
@@ -266,12 +281,15 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
+	lazy val inPartyCommand = Command("use")(env.pokeArg) { implicit args =>
+		cPool { implicit c => env.poke.foreach(env.onParty) }
+	}
 	
 	
 	// COMPUTED -------------------------
 	
-	def values = Vector(levelCommand, potentialCommand, abilitiesCommand, evoMoveChooseCommand,
-		helpChooseMoveCommand, describeStartersCommand)
+	def values = Vector(levelCommand, inPartyCommand, potentialCommand, abilitiesCommand,
+		evoMoveChooseCommand, helpChooseMoveCommand, describeStartersCommand)
 	
 	
 	// OTHER    -------------------------
@@ -312,6 +330,18 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 					Some(p -> p)
 			}
 		}
+	}
+	// Returns empty vector for pokes that don't evolve
+	private def fullyEvolvedIds(pokeId: Int)(implicit connection: Connection): Vector[Int] = {
+		val evos = DbEvos.from(pokeId).toIds
+		if (evos.nonEmpty) {
+			evos.flatMap { evo =>
+				val finalLevel = fullyEvolvedIds(evo)
+				NotEmpty(finalLevel).getOrElse(Some(evo))
+			}
+		}
+		else
+			Vector()
 	}
 	
 	private def captureOrLevel(poke: Poke, level: Int)(implicit connection: Connection) = {

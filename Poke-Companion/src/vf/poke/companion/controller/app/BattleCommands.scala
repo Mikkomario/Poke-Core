@@ -194,10 +194,9 @@ class BattleCommands(implicit env: PokeRunEnvironment)
 		else {
 			val usedTypes = DbAttackExperiments.against(poke.id).attackTypes
 			// Filters down possible types based on the attack results
-			PokeType.values
-				.flatMap { primaryType =>
-					TypeSet(primaryType) +:
-						PokeType.values.filterNot { _ == primaryType }.map { TypeSet(primaryType, _) }
+			PokeType.values.zipWithIndex
+				.flatMap { case (primaryType, index) =>
+					TypeSet(primaryType) +: PokeType.values.drop(index + 1).map { TypeSet(primaryType, _) }
 				}
 				.filter { possibleType =>
 					usedTypes.forall { attackType =>
