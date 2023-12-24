@@ -16,7 +16,7 @@ import vf.poke.core.database.access.many.poke.evo.DbEvos
 import vf.poke.core.database.access.many.poke.stat.DbPokeStats
 import vf.poke.core.database.access.many.randomization.starter_set.DbStarterSets
 import vf.poke.core.database.access.many.randomization.wild_encounter.DbWildEncounters
-import vf.poke.core.model.cached.{SpreadThresholds, SpreadValues}
+import vf.poke.core.model.cached.{SpreadThresholds2, SpreadValues2}
 import vf.poke.core.model.enumeration.PokeType
 import vf.poke.core.model.enumeration.Stat._
 import vf.poke.core.model.stored.poke.Poke
@@ -28,8 +28,9 @@ import scala.util.{Failure, Success}
 object PokeRunEnvironment
 {
 	// Thresholds in terms of ranking. E.g. 0.8 means 80% means top 20%
-	private val powerIndexThresholds = SpreadThresholds(0.3, 0.5, 0.8)
-	private val powerDescriptions = SpreadValues("very weak", "weak", "strong", "very strong")
+	private val powerIndexThresholds = SpreadThresholds2(0.1, 0.2, 0.4, 0.6, 0.8, 0.9)
+	private val powerDescriptions = SpreadValues2(
+		"extremely weak", "very weak", "weak", "average", "strong", "very strong", "extremely strong")
 }
 
 /**

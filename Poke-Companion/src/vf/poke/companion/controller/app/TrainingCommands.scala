@@ -18,6 +18,7 @@ import vf.poke.core.database.access.many.poke.evo.DbEvos
 import vf.poke.core.database.access.many.poke.stat.DbPokeStats
 import vf.poke.core.database.access.many.randomization.move.DbLearntMoves
 import vf.poke.core.database.access.many.randomization.starter_set.DbDetailedStarterSets
+import vf.poke.core.database.access.single.game.item.DbItem
 import vf.poke.core.model.cached.{SpreadThresholds, SpreadValues}
 import vf.poke.core.model.enumeration.PokeType
 import vf.poke.core.model.enumeration.Stat.{Attack, Defense, Hp, SpecialAttack, SpecialDefense, Speed}
@@ -239,6 +240,43 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
+	lazy val evoHintCommand = Command("evohint", "evo", "Shows a hint concerning when and how a poke will evolve")(
+		env.pokeArg) { implicit args =>
+		cPool { implicit c =>
+			env.poke.foreach { poke =>
+				currentLevelOf(poke.id) match {
+					case Some(currentLevel) =>
+						val evos = DbEvos.from(poke.id).pull
+						if (evos.nonEmpty) {
+							if (evos.size > 1)
+								println(s"${poke.name} has ${evos.size} mutually exclusive evos")
+							evos.flatMap { _.itemId }.foreach { itemId =>
+								val itemName = DbItem(itemId).name
+								println(s"${poke.name} evolves with item: $itemName")
+							}
+							evos.flatMap { _.levelThreshold }.minOption match {
+								case Some(level) =>
+									val levelsRequired = level - currentLevel
+									if (levelsRequired <= 0)
+										println(s"${poke.name} is already ready to evolve")
+									else if (levelsRequired <= 5)
+										println(s"${poke.name} evolves very soon")
+									else if (levelsRequired <= 10)
+										println(s"${poke.name} evolves somewhat soon")
+									else if (levelsRequired <= 15)
+										println(s"It will take some time for ${poke.name} to evolve")
+									else
+										println(s"It will take a long time for ${poke.name} to evolve")
+								case None => println(s"The evolve is not level-based")
+							}
+						}
+						else
+							println(s"${poke.name} doesn't evolve")
+					case None => println("This command is only available for captured pokes")
+				}
+			}
+		}
+	}
 	lazy val describeStartersCommand = Command.withoutArguments("starters",
 		help = "Describes the starter pokes in a bit more detail") {
 		cPool { implicit c =>
@@ -289,7 +327,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 	// COMPUTED -------------------------
 	
 	def values = Vector(levelCommand, inPartyCommand, potentialCommand, abilitiesCommand,
-		evoMoveChooseCommand, helpChooseMoveCommand, describeStartersCommand)
+		evoHintCommand, evoMoveChooseCommand, helpChooseMoveCommand, describeStartersCommand)
 	
 	
 	// OTHER    -------------------------

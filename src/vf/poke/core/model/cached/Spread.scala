@@ -7,6 +7,7 @@ import scala.math.Ordered.orderingToOrdered
  * @author Mikko Hilpinen
  * @since 11.12.2023, v1.0-alt
  */
+@deprecated("Replaced with a new version", "v1.0-alt")
 case class Spread[K, +V](thresholds: SpreadThresholds[K], values: SpreadValues[V])(implicit ord: Ordering[K])
 {
 	def apply(key: K) = {
