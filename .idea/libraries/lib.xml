@@ -1,0 +1,14 @@
+<component name="libraryTable">
+  <library name="lib">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/lib/utopia-vault-v1.17.1-beta-2.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/utopia-flow-v2.3-beta-7.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/utopia-vault-v1.18-beta-1.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/utopia-flow-v2.3-beta-6.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/mariadb-java-client-1.5.9.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/utopia-flow-v2.3-beta-5.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+  </library>
+</component>
