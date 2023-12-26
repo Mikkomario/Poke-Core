@@ -32,6 +32,8 @@ object PokeCompanionApp extends App
 	
 	// APP CODE -----------------------
 	
+	// Sets up the connection
+	setupDb()
 	
 	if (lengthRulesDir.notExists)
 		println(s"WARNING: Length rules couldn't be found from ${lengthRulesDir.absolute}")
