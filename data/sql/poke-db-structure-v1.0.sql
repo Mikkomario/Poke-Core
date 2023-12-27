@@ -45,53 +45,6 @@ CREATE TABLE `item`(
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 
---	Poke	----------
-
--- Represents a permanent change from one poke form to another
--- from_id:         Id of the poke from which this evo originates
--- to_id:           Id of the poke to which this evo leads
--- level_threshold: The level at which this evo is enabled. None if not level-based
--- item_id:         Id of the item associated with this evo
-CREATE TABLE `evo`(
-	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
-	`from_id` INT NOT NULL, 
-	`to_id` INT NOT NULL, 
-	`level_threshold` TINYINT(3), 
-	`item_id` INT, 
-	CONSTRAINT e_p_from_ref_fk FOREIGN KEY e_p_from_ref_idx (from_id) REFERENCES `poke`(`id`) ON DELETE CASCADE, 
-	CONSTRAINT e_p_to_ref_fk FOREIGN KEY e_p_to_ref_idx (to_id) REFERENCES `poke`(`id`) ON DELETE CASCADE, 
-	CONSTRAINT e_i_item_ref_fk FOREIGN KEY e_i_item_ref_idx (item_id) REFERENCES `item`(`id`) ON DELETE SET NULL
-)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-
--- Represents an ability that's possible for a poke to have
--- poke_id:    Id of the poke that may have this ability
--- ability_id: Id of the ability this poke may have
--- is_hidden:  True if this is a hidden ability. Hidden abilities may only be acquired with special measures.
-CREATE TABLE `poke_ability`(
-	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
-	`poke_id` INT NOT NULL, 
-	`ability_id` INT NOT NULL, 
-	`is_hidden` BOOLEAN NOT NULL DEFAULT FALSE, 
-	CONSTRAINT pa_p_poke_ref_fk FOREIGN KEY pa_p_poke_ref_idx (poke_id) REFERENCES `poke`(`id`) ON DELETE CASCADE, 
-	CONSTRAINT pa_a_ability_ref_fk FOREIGN KEY pa_a_ability_ref_idx (ability_id) REFERENCES `ability`(`id`) ON DELETE CASCADE
-)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-
--- Represents a (base) stat assigned to a poke
--- poke_id: Id of the described poke
--- stat_id: Described stat / attribute
--- 		References enumeration Stat
--- 		Possible values are: 1 = hp, 2 = attack, 3 = special attack, 4 = defense, 5 = special defense, 6 = speed
--- value:   Assigned value, between 10 and 255
-CREATE TABLE `poke_stat`(
-	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT, 
-	`poke_id` INT NOT NULL, 
-	`stat_id` TINYINT NOT NULL, 
-	`value` INT NOT NULL, 
-	INDEX ps_combo_1_idx (poke_id, stat_id), 
-	CONSTRAINT ps_p_poke_ref_fk FOREIGN KEY ps_p_poke_ref_idx (poke_id) REFERENCES `poke`(`id`) ON DELETE CASCADE
-)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
-
-
 --	Randomization	----------
 
 -- Represents a single, typically randomized, game version / ROM
@@ -172,6 +125,22 @@ CREATE TABLE `poke`(
 	CONSTRAINT p_r_randomization_ref_fk FOREIGN KEY p_r_randomization_ref_idx (randomization_id) REFERENCES `randomization`(`id`) ON DELETE CASCADE
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
+-- Represents a permanent change from one poke form to another
+-- from_id:         Id of the poke from which this evo originates
+-- to_id:           Id of the poke to which this evo leads
+-- level_threshold: The level at which this evo is enabled. None if not level-based
+-- item_id:         Id of the item associated with this evo
+CREATE TABLE `evo`(
+	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	`from_id` INT NOT NULL,
+	`to_id` INT NOT NULL,
+	`level_threshold` TINYINT(3),
+	`item_id` INT,
+	CONSTRAINT e_p_from_ref_fk FOREIGN KEY e_p_from_ref_idx (from_id) REFERENCES `poke`(`id`) ON DELETE CASCADE,
+	CONSTRAINT e_p_to_ref_fk FOREIGN KEY e_p_to_ref_idx (to_id) REFERENCES `poke`(`id`) ON DELETE CASCADE,
+	CONSTRAINT e_i_item_ref_fk FOREIGN KEY e_i_item_ref_idx (item_id) REFERENCES `item`(`id`) ON DELETE SET NULL
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
 -- Represents a poke's ability to learn a move when evolving
 -- poke_id: Id of the poke (form) learning this move
 -- move_id: id of the move learnt
@@ -195,6 +164,34 @@ CREATE TABLE `move_learn`(
 	INDEX ml_combo_1_idx (poke_id, level), 
 	CONSTRAINT ml_p_poke_ref_fk FOREIGN KEY ml_p_poke_ref_idx (poke_id) REFERENCES `poke`(`id`) ON DELETE CASCADE, 
 	CONSTRAINT ml_m_move_ref_fk FOREIGN KEY ml_m_move_ref_idx (move_id) REFERENCES `move`(`id`) ON DELETE CASCADE
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+-- Represents an ability that's possible for a poke to have
+-- poke_id:    Id of the poke that may have this ability
+-- ability_id: Id of the ability this poke may have
+-- is_hidden:  True if this is a hidden ability. Hidden abilities may only be acquired with special measures.
+CREATE TABLE `poke_ability`(
+	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	`poke_id` INT NOT NULL,
+	`ability_id` INT NOT NULL,
+	`is_hidden` BOOLEAN NOT NULL DEFAULT FALSE,
+	CONSTRAINT pa_p_poke_ref_fk FOREIGN KEY pa_p_poke_ref_idx (poke_id) REFERENCES `poke`(`id`) ON DELETE CASCADE,
+	CONSTRAINT pa_a_ability_ref_fk FOREIGN KEY pa_a_ability_ref_idx (ability_id) REFERENCES `ability`(`id`) ON DELETE CASCADE
+)Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
+
+-- Represents a (base) stat assigned to a poke
+-- poke_id: Id of the described poke
+-- stat_id: Described stat / attribute
+-- 		References enumeration Stat
+-- 		Possible values are: 1 = hp, 2 = attack, 3 = special attack, 4 = defense, 5 = special defense, 6 = speed
+-- value:   Assigned value, between 10 and 255
+CREATE TABLE `poke_stat`(
+	`id` INT NOT NULL PRIMARY KEY AUTO_INCREMENT,
+	`poke_id` INT NOT NULL,
+	`stat_id` TINYINT NOT NULL,
+	`value` INT NOT NULL,
+	INDEX ps_combo_1_idx (poke_id, stat_id),
+	CONSTRAINT ps_p_poke_ref_fk FOREIGN KEY ps_p_poke_ref_idx (poke_id) REFERENCES `poke`(`id`) ON DELETE CASCADE
 )Engine=InnoDB DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;
 
 

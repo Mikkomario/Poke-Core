@@ -26,7 +26,8 @@ object Common
 	
 	def setupDb() = {
 		val user = StdIn.readNonEmptyLine("Please specify DB user to use (default = root)").getOrElse("root")
-		val password = StdIn.readLine("Please specify the password to use when connecting to the DB")
+		println("Please specify the password to use when connecting to the DB")
+		val password = StdIn.readLine()
 		Connection.modifySettings { _.copy(user = user, password = password) }
 	}
 }
