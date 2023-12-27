@@ -1,8 +1,8 @@
 package vf.poke.companion.controller.app
 
+import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.collection.immutable.Pair
 import utopia.flow.collection.immutable.range.NumericSpan
-import utopia.flow.collection.CollectionExtensions._
 import utopia.flow.operator.enumeration.End.{First, Last}
 import utopia.flow.util.NotEmpty
 import utopia.flow.util.console.{ArgumentSchema, Command}
@@ -19,16 +19,16 @@ import vf.poke.core.database.access.many.poke.stat.DbPokeStats
 import vf.poke.core.database.access.many.randomization.move.DbLearntMoves
 import vf.poke.core.database.access.many.randomization.starter_set.DbDetailedStarterSets
 import vf.poke.core.database.access.single.game.item.DbItem
-import vf.poke.core.model.cached.{SpreadThresholds, SpreadValues}
+import vf.poke.core.model.cached.{SpreadThresholds2, SpreadValues2}
 import vf.poke.core.model.enumeration.PokeType
-import vf.poke.core.model.enumeration.Stat.{Attack, Defense, Hp, SpecialAttack, SpecialDefense, Speed}
+import vf.poke.core.model.enumeration.Stat._
 import vf.poke.core.model.stored.poke.Poke
 import vf.poke.core.util.Common._
 
 object TrainingCommands
 {
-	private val physicalToSpecialSpread = SpreadThresholds(0.7, 1.0, 1.4) +
-		SpreadValues("special", "mixed (special)", "mixed (physical)", "physical")
+	private val physicalToSpecialSpread = SpreadThresholds2(0.5, 0.8, 0.9, 1.1, 1.25, 2.0) +
+		SpreadValues2("only special", "special focus", "balanced", "physical focus", "only physical")
 }
 
 /**
@@ -42,7 +42,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 	
 	// ATTRIBUTES   ---------------------
 	
-	lazy val levelCommand = Command("lvl",
+	private lazy val levelCommand = Command("lvl",
 		help = "Records the fact that you reached the specified level in poke training, or captured a poke")(
 		env.pokeArg, ArgumentSchema("level", "lvl", help = "The level reached with the specified poke")) { implicit args =>
 		cPool { implicit c =>
@@ -54,7 +54,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val potentialCommand = Command("power", "pw", help = "Describes the power level of a poke")(
+	private lazy val potentialCommand = Command("power", "pw", help = "Describes the power level of a poke")(
 		env.pokeArg) { implicit args =>
 		cPool { implicit c =>
 			env.poke.foreach { poke =>
@@ -126,7 +126,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val abilitiesCommand = Command("abilities", "abil", help = "Lists the standard abilities of a poke")(
+	private lazy val abilitiesCommand = Command("abilities", "abil", help = "Lists the standard abilities of a poke")(
 		env.pokeArg) { implicit args =>
 		cPool { implicit c =>
 			env.poke.foreach { poke =>
@@ -141,7 +141,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val evoMoveChooseCommand = Command("evomoves", "moves",
+	private lazy val evoMoveChooseCommand = Command("evomoves", "moves",
 		help = "Lists the choice of moves between the current and upcoming evo form")(env.pokeArg) { implicit args =>
 		cPool { implicit c =>
 			env.poke.foreach { poke =>
@@ -185,7 +185,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val helpChooseMoveCommand = Command("movetype", "compare")(
+	private lazy val helpChooseMoveCommand = Command("movetype", "compare")(
 		env.pokeArg,
 		ArgumentSchema("movetype", "t1", help = "Type of the first possible move"),
 		ArgumentSchema("alt", "t2", help = "Type of the second possible move"),
@@ -240,7 +240,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val evoHintCommand = Command("evohint", "evo", "Shows a hint concerning when and how a poke will evolve")(
+	private lazy val evoHintCommand = Command("evohint", "evo", "Shows a hint concerning when and how a poke will evolve")(
 		env.pokeArg) { implicit args =>
 		cPool { implicit c =>
 			env.poke.foreach { poke =>
@@ -277,7 +277,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val describeStartersCommand = Command.withoutArguments("starters",
+	private lazy val describeStartersCommand = Command.withoutArguments("starters",
 		help = "Describes the starter pokes in a bit more detail") {
 		cPool { implicit c =>
 			// Reads the starters
@@ -319,7 +319,7 @@ class TrainingCommands(implicit env: PokeRunEnvironment)
 			}
 		}
 	}
-	lazy val inPartyCommand = Command("use")(env.pokeArg) { implicit args =>
+	private lazy val inPartyCommand = Command("use")(env.pokeArg) { implicit args =>
 		cPool { implicit c => env.poke.foreach(env.onParty) }
 	}
 	
